@@ -1,4 +1,11 @@
-# Trouver ses LocalKey, DeviceID et DPs de ses appareils Tuya wifi — depuis Home Assistant OS - sans devoir utiliser de compte dev sur iot.tuya.com
+<img width="2048" height="768" alt="image" src="https://github.com/user-attachments/assets/79d1a3a4-1ce1-43ac-9658-2f235947f9ac" />
+
+
+
+
+#  Guide pour trouver ses LocalKey, DeviceID et DPs de ses appareils Tuya wifi — depuis Home Assistant OS - sans devoir utiliser de compte dev sur iot.tuya.com
+
+
 
 Guide pour récupérer le `device_id` et la `local_key` d'un appareil Tuya WiFi, l'interroger avec `tinytuya`, puis déduire le nom, le type, la plage et le pas (step) de chaque DP en le comparant à l'app Smart Life — **tout se fait depuis Home Assistant OS**.
 
