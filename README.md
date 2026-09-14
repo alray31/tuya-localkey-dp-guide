@@ -36,7 +36,7 @@ Guide pour récupérer le `device_id` et la `local_key` d'un appareil Tuya WiFi,
 Le `device_id` et la `local_key` récupérés ici servent à ajouter manuellement un appareil WiFi Tuya dans Home Assistant via une intégration custom HACS en local — **sans passer par le cloud Tuya à l'usage**, et surtout **sans avoir besoin de créer de compte ni de projet développeur sur `iot.tuya.com`**. Deux intégrations HACS courantes utilisent ces informations :
 
 - **[tuya-local](https://github.com/make-all/tuya-local)** — configs par appareil basées sur des profils YAML communautaires.
-- **[localtuya](https://github.com/c/localtuya/)** — configuration manuelle DP par DP, entité par entité.
+- **[localtuya](https://github.com/rospogrigio/localtuya/)** — configuration manuelle DP par DP, entité par entité.
 
 Le mapping des DPs (nom, type, range, step) construit dans ce guide sert précisément à configurer correctement ces entités dans l'intégration choisie, une fois le `device_id`/`local_key` en main.
 
@@ -122,7 +122,7 @@ Bien que le device_id soit récupérable directement via l'app Smartlife, la loc
 
 [`tuya-local-key`](https://github.com/vineetchoudhary/tuya-local-key) récupère la liste des appareils (ID, local key, etc...) via une connexion QR code au compte Smart Life — **sans créer de projet développeur Tuya**. Il existe en version add-on Home Assistant.
 
-> ⚠️ **Attention** L'adresse IP exposée par tuya-local-key correspond à votre adresse IP publique attribué par votre FAI et non à l'adresse IP locale de votre appareil. Cette adresse IP n'est pas celle qui sera utilisé plus tard dans cette procédure.
+> ⚠️ **Attention** L'adresse IP exposée par tuya-local-key correspond à votre adresse IP publique attribuée par votre FAI et non à l'adresse IP locale de votre appareil. Cette adresse IP n'est pas celle qui sera utilisée plus tard dans cette procédure.
 
 ### Installation (en tant qu'add-on)
 
@@ -152,11 +152,11 @@ Bien que le device_id soit récupérable directement via l'app Smartlife, la loc
 
 3. Une demande de connexion apparaît dans l'app — appuyer sur **"Confirmer la connexion"**.
 4. La liste des appareils apparaît dans l'add-on : `device_id`, `local_key`, `uuid`, `catégorie`, statut en ligne.
-5. Prendre en note les  `device_id`, `local_key`. Ne pas confondre `device_id` (appelé simplement "id" dans cet addon avec le `product id`
+5. Prendre en note les `device_id`, `local_key`. Ne pas confondre `device_id` (appelé simplement "id" dans cet add-on) avec le `product id`.
 
 <img width="1591" height="357" alt="image" src="https://github.com/user-attachments/assets/f6e04bdf-4db6-4241-bb04-04b522a18882" />
 
-> ⚠️ **Note** : Une fois les informations notées, l'add-on peut être arrêté, voir désinstallé.
+> ⚠️ **Note** : Une fois les informations notées, l'add-on peut être arrêté, voire désinstallé.
 
 > ⚠️ **Important — stabilité de la local_key** : supprimer puis rajouter l'appareil **dans l'app Smart Life** génère une nouvelle `local_key` (l'appareil doit alors être repairé avec Wi-Fi, et toute intégration HA configurée avec l'ancienne clé cesse de fonctionner). Éviter de faire ça une fois l'appareil configuré dans Home Assistant. À l'inverse, supprimer l'app Smart Life elle-même du téléphone (ou se déconnecter/reconnecter au compte) n'a aucun effet sur la `local_key` — seule la suppression de l'appareil dans l'app en génère une nouvelle.
 
@@ -215,11 +215,11 @@ Utiliser un éditeur de texte, par exemple Notepad++ copier/coller le script plu
 
 > Le `<<'EOF'` (heredoc **quoté**) est important si la `local_key` contient des caractères spéciaux (`` ` ``, `$`, `&`, `;`...) — cela empêche le shell de les interpréter avant qu'ils atteignent Python.
 
-Le résultat obtenu ressemble à `{'dps': {'1': True, '103': 1500, '106': True, '190': 3450, ...}}` — les identifiants de DP et leurs valeurs actuelles, mais sans nom ni description. Cette liste de DP correspond à tout les DP qui sont exposés localement sur votre réseau par votre appareil tuya. À noter que dans certain cas, certain DP peuvent être exposés par le firmware de l'appareil même s'il n'ont en fait pas de fonction utiles/attribué. Cela est attribuable au fait que plusieurs manufacturiers utilisent un "template" générique pour concevoir le firmware le type d'appareil sans toutefois tous les utiliser. Il est possible aussi que certain DP ne doivent pas être contrôlés par l'utilisateur (réglages d'usine).
+Le résultat obtenu ressemble à `{'dps': {'1': True, '103': 1500, '106': True, '190': 3450, ...}}` — les identifiants de DP et leurs valeurs actuelles, mais sans nom ni description. Cette liste de DP correspond à tous les DP qui sont exposés localement sur votre réseau par votre appareil tuya. À noter que dans certains cas, certains DP peuvent être exposés par le firmware de l'appareil même s'ils n'ont en fait pas de fonction utile ou attribuée. Cela est attribuable au fait que plusieurs manufacturiers utilisent un "template" générique pour concevoir le firmware d'un type d'appareil sans toutefois tous les utiliser. Il est possible aussi que certains DP ne doivent pas être contrôlés par l'utilisateur (réglages d'usine).
 
 Prendre en note les DPs dans un tableau (voir exemple à l'étape 8).
 
-Les DP non-utilisés / non-attribués mais qui sont tout de même exposés, resterons statique (aucun changement de valeur) durant les prochaines étapes et pourront être retirés du tableau.
+Les DP non-utilisés / non-attribués mais qui sont tout de même exposés, resteront statiques (aucun changement de valeur) durant les prochaines étapes et pourront être retirés du tableau.
 
 > ⚠️ **En l'absence de réponse** (dict vide `{}`) : vérifier d'abord que la version utilisée correspond bien à celle notée lors du scan — c'est la cause la plus fréquente. Si le scan n'a pas trouvé l'appareil du tout, vérifier aussi que l'adresse IP n'a pas changé (relancer le scan pour confirmer).
 
@@ -258,7 +258,7 @@ while True:
 EOF
 ```
 
-Commme pour l'étape précédente: Utiliser un éditeur de texte, par exemple Notepad++ copier/coller le script plus haut dans une nouvelle page de Notepad++ et remplacer les champs `DEVICE_ID`, `DEVICE_IP`, `LOCAL_KEY` et `VERSION` par les valeurs obtenues précédemment. Ensuite, copier/coller le script final contenant vos informations dans le terminal de l'add-on et appuyer sur Entrée.
+Comme pour l'étape précédente: Utiliser un éditeur de texte, par exemple Notepad++ copier/coller le script plus haut dans une nouvelle page de Notepad++ et remplacer les champs `DEVICE_ID`, `DEVICE_IP`, `LOCAL_KEY` et `VERSION` par les valeurs obtenues précédemment. Ensuite, copier/coller le script final contenant vos informations dans le terminal de l'add-on et appuyer sur Entrée.
 
 Laisser ce terminal ouvert et actif pendant toute la session (`Ctrl+C` pour arrêter).
 
@@ -274,9 +274,7 @@ Le script actif, ouvrir l'app Smart Life et modifier **un seul réglage à la fo
 
 **Range (min/max)** — pousser le contrôle à ses deux extrêmes dans l'app (slider au minimum, puis au maximum) et noter la valeur brute à chaque bout. L'app respecte déjà les vraies limites du schema, donc ces deux essais donnent le min/max exacts sans risque de sortir des bornes réelles.
 
-**Step / scale** — déplacer le slider d'un seul cran dans l'app et mesurer de combien la valeur brute a changé (= step). Comparer la valeur *affichée* dans l'app à la valeur *brute* reçue pour trouver le scale :
-- L'app affiche "15.0 °C", brut = `150` → `scale = 1` (diviser par 10)
-- L'app affiche "22 °C", brut = `22` → `scale = 0`
+**Step** — déplacer le slider d'un seul cran dans l'app et mesurer de combien la valeur brute a changé : c'est l'incrément minimal possible pour ce DP. Par exemple, un step de `10` signifie que la valeur ne peut être modifiée que par incréments de 10 (`1000`, `1010`, `1020`...).
 
 **Enum** — pour un contrôle à choix multiples (mode, vitesse...), sélectionner chaque option une par une dans l'app et noter la valeur brute correspondante pour construire la liste complète.
 
@@ -284,11 +282,11 @@ Le script actif, ouvrir l'app Smart Life et modifier **un seul réglage à la fo
 
 > ⚠️ Éviter d'envoyer des valeurs hors plage directement via `d.set_value()` pour "tester les bornes" — certains firmwares n'ont aucune validation côté device et appliqueront la valeur brute telle quelle, ce qui peut dérégler l'appareil. Rester sur les limites imposées par l'app tant que le mapping n'est pas confirmé.
 
-**Point de repère utile** : Tuya réserve généralement les DPs **1 à ~100** aux fonctions standard par catégorie de produit (voir [ressources](#9-ressources)) — si les DPs bas (1-20) suivent un pattern reconnaissable, cela confirme la catégorie de base de l'appareil. Les DPs **101+** sont presque toujours des extensions propriétaires propre à chaque fabricant, à déduire uniquement par cette méthode empirique.
+**Point de repère utile** : Tuya réserve généralement les DPs **1 à ~100** aux fonctions standard par catégorie de produit (voir [ressources](#9-ressources)) — si les DPs bas (1-20) suivent un pattern reconnaissable, cela confirme la catégorie de base de l'appareil. Les DPs **101+** sont presque toujours des extensions propriétaires propres à chaque fabricant, à déduire uniquement par cette méthode empirique.
 
 **Exemple 1**
 
-Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "no load protection" d'une pompe tuya. On execute le script mentionné plus haut en prenant soin de bien renseigner le device id, adresse_ip, localkey et version de protocole. Par la suite dans l'app smart life nous basculerons la fonction "no load protection" de notre pompe entre activé et désactivé tout en vérifiant les informations dans le terminal. Nous voyons que tinytuya, via le script, détecte un changement sur le DP # 106 qui basule entre True et False. Alors le DP 106 est de type Bolean et correspond à la fonction "no load protection"
+Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "no load protection" d'une pompe tuya. On exécute le script mentionné plus haut en prenant soin de bien renseigner le device id, adresse_ip, localkey et version de protocole. Par la suite dans l'app smart life nous basculerons la fonction "no load protection" de notre pompe entre activé et désactivé tout en vérifiant les informations dans le terminal. Nous voyons que tinytuya, via le script, détecte un changement sur le DP # 106 qui bascule entre True et False. Alors le DP 106 est de type Boolean et correspond à la fonction "no load protection"
 
 <img width="349" height="714" alt="image" src="https://github.com/user-attachments/assets/f1e1df88-5f70-4d39-9c7d-599c2ab8345c" /><img width="350" height="718" alt="image" src="https://github.com/user-attachments/assets/b074300e-2834-48fb-97ad-42874f80e336" />
 
@@ -297,7 +295,7 @@ Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "no lo
 
 **Exemple 2**
 
-Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "quick clean speed" d'une pompe tuya. On execute le script mentionné plus haut en prenant soin de bien renseigner le device id, adresse_ip, localkey et version de protocole. Par la suite dans l'app smart life nous changerons les valeurs possibles "quick clean speed" (valeure minimum et maximum) tout en vérifiant les informations dans le terminal. Nous voyons que tinytuya, via le script, détecte un changement sur le DP # 190 qui change de valeur entre 1000 et 3450. Alors le DP 190 est de type integer et correspond à la fonction "quick clean speed". Sa valeur minimale est 1000 et sa valeur maximale est 3450. Aussi, le minimum d'incrément possible via l'app smartlife et de 10 donc la valeur de "step / scale" est 10.
+Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "quick clean speed" d'une pompe tuya. On exécute le script mentionné plus haut en prenant soin de bien renseigner le device id, adresse_ip, localkey et version de protocole. Par la suite dans l'app smart life nous changerons les valeurs possibles "quick clean speed" (valeur minimum et maximum) tout en vérifiant les informations dans le terminal. Nous voyons que tinytuya, via le script, détecte un changement sur le DP # 190 qui change de valeur entre 1000 et 3450. Alors le DP 190 est de type integer et correspond à la fonction "quick clean speed". Sa valeur minimale est 1000 et sa valeur maximale est 3450. Aussi, le minimum d'incrément possible via l'app smartlife est de 10, donc la valeur du "step" est 10.
 
 <img width="351" height="715" alt="image" src="https://github.com/user-attachments/assets/71e9cc87-60ff-407d-9b6d-8f9bc4180edf" /><img width="350" height="719" alt="image" src="https://github.com/user-attachments/assets/e705f88c-b04f-4fa4-99ac-7cf0851159dc" />
 
@@ -314,11 +312,11 @@ Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "quick
 
 Documenter chaque DP au fur et à mesure dans un tableau qui servira ensuite à configurer manuellement l'appareil tuya dans tuya-local ou localTuya (sans utilisation du cloud). Exemple abbrégé :
 
-| DP  | Nom déduit        | Type    | Range       | Step / Scale  | Notes                          |
-|-----|-------------------|---------|-------------|---------------|---------------------------------|
-| 1   | switch            | Boolean | —           | —             | Marche/arrêt principal          |
-| 106 | load protection   | Boolean | —           | —             | No load protection on/off       |
-| 190 | quick clean speed | Integer | 1000-3450   | 10            | Vitesse RPM du quick clean      |
+| DP  | Nom déduit        | Type    | Range       | Step  | Notes                          |
+|-----|-------------------|---------|-------------|-------|---------------------------------|
+| 1   | switch            | Boolean | —           | —     | Marche/arrêt principal          |
+| 106 | load protection   | Boolean | —           | —     | No load protection on/off       |
+| 190 | quick clean speed | Integer | 1000-3450   | 10    | Vitesse RPM du quick clean      |
 
 </details>
 
@@ -374,7 +372,7 @@ Guide to retrieving a Tuya WiFi device's `device_id` and `local_key`, querying i
 The `device_id` and `local_key` retrieved here are used to manually add a Tuya WiFi device to Home Assistant through a local custom HACS integration — **no Tuya cloud involved at runtime**, and above all **no need to create an account or a developer project on `iot.tuya.com`**. Two common HACS integrations use this information:
 
 - **[tuya-local](https://github.com/make-all/tuya-local)** — per-device configs based on community-maintained YAML profiles.
-- **[localtuya](https://github.com/c/localtuya/)** — manual configuration, DP by DP, entity by entity.
+- **[localtuya](https://github.com/rospogrigio/localtuya/)** — manual configuration, DP by DP, entity by entity.
 
 The DP mapping (name, type, range, step) built in this guide is exactly what's needed to correctly configure these entities in whichever integration you choose, once you have the `device_id`/`local_key` in hand.
 
@@ -611,9 +609,7 @@ With the script running, open the Smart Life app and change **one setting at a t
 
 **Range (min/max)** — push the control to both extremes in the app (slider at minimum, then at maximum) and note the raw value at each end. The app already respects the schema's real limits, so these two tests give the exact min/max without any risk of going outside the actual bounds.
 
-**Step / scale** — move the slider by a single notch in the app and measure how much the raw value changed by (= step). Compare the value *displayed* in the app to the *raw* value received to find the scale:
-- App shows "15.0 °C", raw = `150` → `scale = 1` (divide by 10)
-- App shows "22 °C", raw = `22` → `scale = 0`
+**Step** — move the slider by a single notch in the app and measure how much the raw value changed by: that's the smallest possible increment for that DP. For example, a step of `10` means the value can only be changed in increments of 10 (`1000`, `1010`, `1020`...).
 
 **Enum** — for a multi-choice control (mode, speed...), select each option one by one in the app and note the corresponding raw value to build the full list.
 
@@ -635,7 +631,7 @@ In this example, we want to find the DP corresponding to the "no load protection
 
 **Example 2**
 
-In this example, we want to find the DP corresponding to the "quick clean speed" function of a Tuya pump. We run the script mentioned above, taking care to correctly fill in the device id, IP address, local key and protocol version. Then, in the Smart Life app, we change the possible "quick clean speed" values (minimum and maximum) while watching the information in the terminal. We see that tinytuya, via the script, detects a change on DP #190, which changes value between 1000 and 3450. So DP 190 is of type integer and corresponds to the "quick clean speed" function. Its minimum value is 1000 and its maximum value is 3450. Also, the smallest increment possible via the Smart Life app is 10, so the "step / scale" value is 10.
+In this example, we want to find the DP corresponding to the "quick clean speed" function of a Tuya pump. We run the script mentioned above, taking care to correctly fill in the device id, IP address, local key and protocol version. Then, in the Smart Life app, we change the possible "quick clean speed" values (minimum and maximum) while watching the information in the terminal. We see that tinytuya, via the script, detects a change on DP #190, which changes value between 1000 and 3450. So DP 190 is of type integer and corresponds to the "quick clean speed" function. Its minimum value is 1000 and its maximum value is 3450. Also, the smallest increment possible via the Smart Life app is 10, so the "step" value is 10.
 
 <img width="351" height="715" alt="image" src="https://github.com/user-attachments/assets/71e9cc87-60ff-407d-9b6d-8f9bc4180edf" /><img width="350" height="719" alt="image" src="https://github.com/user-attachments/assets/e705f88c-b04f-4fa4-99ac-7cf0851159dc" />
 
@@ -652,11 +648,11 @@ In this example, we want to find the DP corresponding to the "quick clean speed"
 
 Document each DP as you go, in a table that will later be used to manually configure the Tuya device in tuya-local or localtuya (without using the cloud). Abbreviated example:
 
-| DP  | Deduced name      | Type    | Range       | Step / Scale  | Notes                          |
-|-----|-------------------|---------|-------------|---------------|---------------------------------|
-| 1   | switch            | Boolean | —           | —             | Main on/off                     |
-| 106 | load protection   | Boolean | —           | —             | No load protection on/off       |
-| 190 | quick clean speed | Integer | 1000-3450   | 10            | Quick clean RPM speed           |
+| DP  | Deduced name      | Type    | Range       | Step  | Notes                          |
+|-----|-------------------|---------|-------------|-------|---------------------------------|
+| 1   | switch            | Boolean | —           | —     | Main on/off                     |
+| 106 | load protection   | Boolean | —           | —     | No load protection on/off       |
+| 190 | quick clean speed | Integer | 1000-3450   | 10    | Quick clean RPM speed           |
 
 </details>
 
