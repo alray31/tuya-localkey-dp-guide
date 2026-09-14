@@ -58,6 +58,8 @@ L'add-on officiel "Terminal & SSH" ne donne pas accès à Docker. Il faut l'add-
 
 > ⚠️ Ce guide donne un accès complet à l'hôte Docker de l'installation HA (protection mode désactivé sur l'add-on). C'est nécessaire pour les commandes `docker exec`/`docker run` ci-dessous, mais cela sort du cadre "sécurisé par défaut" de HAOS — restez prudent avec les commandes exécutées, et désactivez/retirez l'add-on une fois le travail terminé, si désiré, pour revenir à un système plus verrouillé.
 
+[![Ouvrir votre Home Assistant et ajouter ce dépôt d'add-ons.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository)
+
 1. **Paramètres → Add-ons → Boutique d'add-ons**.
 2. Menu **⋮** (en haut à droite) → **Dépôts** → ajouter :
    ```
@@ -111,6 +113,8 @@ Bien que le device_id soit récupérable directement via l'app Smartlife, la loc
 > ⚠️ **Attention** L'adresse IP exposée par tuya-local-key correspond à votre adresse IP publique attribué par votre FAI et non à l'adresse IP locale de votre appareil. Cette adresse IP n'est pas celle qui sera utilisé plus tard dans cette procédure.
 
 ### Installation (en tant qu'add-on)
+
+[![Ouvrir votre Home Assistant et ajouter ce dépôt d'add-ons.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fvineetchoudhary%2Ftuya-local-key)
 
 1. **Paramètres → Add-ons → Boutique d'add-ons**.
 2. Menu **⋮** (en haut à droite) → **Dépôts** → ajouter :
