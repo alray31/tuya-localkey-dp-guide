@@ -177,7 +177,7 @@ Avant de construire le script, déterminer la version du protocole utilisé par 
 docker exec -it homeassistant python3 -m tinytuya scan
 ```
 
-Repérer la ligne correspondant à l'appareil et noter la version indiquée aisni que l'adresse IP locale de votre appareil :
+Repérer la ligne correspondant à l'appareil et noter la version indiquée ainsi que l'adresse IP locale de votre appareil :
 
 ```
 Unknown v3.5 Device   Product ID = acqex5ltmos5fqed  [Valid Broadcast]:
