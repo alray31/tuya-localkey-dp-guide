@@ -181,7 +181,7 @@ Repérer la ligne correspondant à l'appareil et noter la version indiquée aisn
 
 ```
 Unknown v3.5 Device   Product ID = acqex5ltmos5fqed  [Valid Broadcast]:
-    Address = 192.168.1.247   Device ID = ebdc2e75cfd943ea96e1om (len:22)  Local Key =   Version = 3.5
+    Address = 192.168.1.247   Device ID = ebdc2e75c************* (len:22)  Local Key =   Version = 3.5
 ```
 
 Ici, la version est **3.5** (visible au début de la ligne et dans le champ `Version =`). Prendre cette valeur en note, elle sera utilisée dans le script ci-dessous.
@@ -518,7 +518,7 @@ Find the line matching your device and note the version shown, as well as your d
 
 ```
 Unknown v3.5 Device   Product ID = acqex5ltmos5fqed  [Valid Broadcast]:
-    Address = 192.168.1.247   Device ID = ebdc2e75cfd943ea96e1om (len:22)  Local Key =   Version = 3.5
+    Address = 192.168.1.247   Device ID = ebdc2e75c************* (len:22)  Local Key =   Version = 3.5
 ```
 
 Here, the version is **3.5** (visible at the start of the line and in the `Version =` field). Note this value, it will be used in the script below.
