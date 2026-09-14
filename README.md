@@ -1,8 +1,9 @@
-**🇫🇷 [Français](#francais)  ·  🇬🇧 [English](#english)**
-
-<img width="2048" height="768" alt="image" src="https://github.com/user-attachments/assets/79d1a3a4-1ce1-43ac-9658-2f235947f9ac" />
+** [Français](#francais)  ·   [English](#english)**
 
 <a id="francais"></a>
+<img width="2048" height="768" alt="image" src="https://github.com/user-attachments/assets/79d1a3a4-1ce1-43ac-9658-2f235947f9ac" />
+
+
 
 
 ---
@@ -342,7 +343,7 @@ Documenter chaque DP au fur et à mesure dans un tableau qui servira ensuite à 
 ---
 
 <a id="english"></a>
-**🇫🇷 [Français](#francais)  ·  🇬🇧 [English](#english)**
+** [Français](#francais)  ·   [English](#english)**
 
 <img width="2048" height="768" alt="image" src="https://github.com/user-attachments/assets/f38ee09c-57a7-4a51-b70c-7dac5e7272a0" />
 
