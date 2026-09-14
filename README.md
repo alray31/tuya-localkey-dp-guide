@@ -151,12 +151,12 @@ Bien que le device_id soit récupérable directement via l'app Smartlife, la loc
 
 
 3. Une demande de connexion apparaît dans l'app — appuyer sur **"Confirmer la connexion"**.
-4. La liste des appareils apparaît dans l'add-on : `device_id`, `local_key`, `uuid`, `catégorie`, IP locale, statut en ligne.
-5. Prendre en note les  `device_id`, `local_key`. Ne pas confondre `device_id` (appelé simplement "id" dans cet addon avec le `procduct id`
+4. La liste des appareils apparaît dans l'add-on : `device_id`, `local_key`, `uuid`, `catégorie`, statut en ligne.
+5. Prendre en note les  `device_id`, `local_key`. Ne pas confondre `device_id` (appelé simplement "id" dans cet addon avec le `product id`
 
 <img width="1591" height="357" alt="image" src="https://github.com/user-attachments/assets/f6e04bdf-4db6-4241-bb04-04b522a18882" />
 
-> ⚠️ **Note** : Une fois les informations notées, l'add-on peut être arrêté, voire désinstallé.
+> ⚠️ **Note** : Une fois les informations notées, l'add-on peut être arrêté, voir désinstallé.
 
 > ⚠️ **Important — stabilité de la local_key** : supprimer puis rajouter l'appareil **dans l'app Smart Life** génère une nouvelle `local_key` (l'appareil doit alors être repairé avec Wi-Fi, et toute intégration HA configurée avec l'ancienne clé cesse de fonctionner). Éviter de faire ça une fois l'appareil configuré dans Home Assistant. À l'inverse, supprimer l'app Smart Life elle-même du téléphone (ou se déconnecter/reconnecter au compte) n'a aucun effet sur la `local_key` — seule la suppression de l'appareil dans l'app en génère une nouvelle.
 
@@ -185,6 +185,7 @@ Unknown v3.5 Device   Product ID = acqex5ltmos5fqed  [Valid Broadcast]:
 ```
 
 Ici, la version est **3.5** (visible au début de la ligne et dans le champ `Version =`). Prendre cette valeur en note, elle sera utilisée dans le script ci-dessous.
+
 Ici, l'adresse IP locale est **192.168.1.247** (visible dans le champ `Address =`). Prendre cette valeur en note, elle sera utilisée dans le script ci-dessous.
 
 ### Lire les DPs
@@ -203,14 +204,14 @@ docker exec -i homeassistant python3 <<'EOF'
 import tinytuya
 
 d = tinytuya.Device('DEVICE_ID', 'DEVICE_IP', "LOCAL_KEY")
-d.set_version(VERSION)   # la version notée à l'étape du scan, ex: 3.5
+d.set_version(VERSION)
 
 data = d.status()
 print(data)
 EOF
 ```
 
-Utiliser un étediteur de texte, par exemple Notepad++ copier/coller le script plus haut dans une nouvelle page de Notepad++ et remplacer les champs `DEVICE_ID`, `DEVICE_IP`, `LOCAL_KEY` et `VERSION` par les valeurs obtenues précédemment. Ensuite, copier/coller le script final contenant vos informations dans le terminal de l'add-on et appuyer sur Entrée.
+Utiliser un éditeur de texte, par exemple Notepad++ copier/coller le script plus haut dans une nouvelle page de Notepad++ et remplacer les champs `DEVICE_ID`, `DEVICE_IP`, `LOCAL_KEY` et `VERSION` par les valeurs obtenues précédemment. Ensuite, copier/coller le script final contenant vos informations dans le terminal de l'add-on et appuyer sur Entrée.
 
 > Le `<<'EOF'` (heredoc **quoté**) est important si la `local_key` contient des caractères spéciaux (`` ` ``, `$`, `&`, `;`...) — cela empêche le shell de les interpréter avant qu'ils atteignent Python.
 
@@ -241,7 +242,7 @@ import tinytuya
 import time
 
 d = tinytuya.Device('DEVICE_ID', 'DEVICE_IP', "LOCAL_KEY")
-d.set_version(VERSION)  # la même version notée à l'étape 6
+d.set_version(VERSION)
 d.set_socketPersistent(True)
 
 last = d.status().get('dps', {})
@@ -311,7 +312,7 @@ Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "quick
 <details>
 <summary>Voir plus</summary>
 
-Documenter chaque DP au fur et à mesure dans un tableau qui servira ensuite à configurer manuellement l'appareil tuya dans tuya-local ou localTuy (sans utilisation du cloud). Exemple abbrégé :
+Documenter chaque DP au fur et à mesure dans un tableau qui servira ensuite à configurer manuellement l'appareil tuya dans tuya-local ou localTuya (sans utilisation du cloud). Exemple abbrégé :
 
 | DP  | Nom déduit        | Type    | Range       | Step / Scale  | Notes                          |
 |-----|-------------------|---------|-------------|---------------|---------------------------------|
