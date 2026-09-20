@@ -17,14 +17,16 @@ Guide pour récupérer le `device_id` et la `local_key` d'un appareil Tuya WiFi,
 ## Sommaire
 
 1. [À quoi sert ce guide](#1-à-quoi-sert-ce-guide)
-2. [Prérequis](#2-prérequis)
-3. [Installer l'add-on Advanced SSH & Web Terminal](#3-installer-laddon-advanced-ssh--web-terminal)
-4. [Vérifier / installer tinytuya dans le conteneur Home Assistant](#4-vérifier--installer-tinytuya-dans-le-conteneur-home-assistant)
+2. [Tuya, Tuya-local, localtuya, ESPHome : C'est quoi, quand les utiliser ?](#2-tuya-tuya-local-localtuya-esphome--cest-quoi-quand-les-utiliser)
+3. [Combien d'intégrations locales peuvent se connecter en même temps à un appareil ?](#3-combien-dintégrations-locales-peuvent-se-connecter-en-même-temps-à-un-appareil)
+4. [Prérequis](#4-prérequis)
 5. [Récupérer device_id et local_key avec tuya-local-key](#5-récupérer-device_id-et-local_key-avec-tuya-local-key)
-6. [Lire les DPs de l'appareil](#6-lire-les-dps-de-lappareil)
-7. [Monitoring live des DPs + déduction via l'app Smart Life](#7-monitoring-live-des-dps--déduction-via-lapp-smart-life)
-8. [Tableau de suivi](#8-tableau-de-suivi)
-9. [Ressources](#9-ressources)
+6. [Installer l'add-on Advanced SSH & Web Terminal](#6-installer-laddon-advanced-ssh--web-terminal)
+7. [Vérifier / installer tinytuya dans le conteneur Home Assistant](#7-vérifier--installer-tinytuya-dans-le-conteneur-home-assistant)
+8. [Lire les DPs de l'appareil](#8-lire-les-dps-de-lappareil)
+9. [Monitoring live des DPs + déduction via l'app Smart Life](#9-monitoring-live-des-dps--déduction-via-lapp-smart-life)
+10. [Tableau de suivi](#10-tableau-de-suivi)
+11. [Ressources](#11-ressources)
 
 ---
 
@@ -40,13 +42,100 @@ Le `device_id` et la `local_key` récupérés ici servent à ajouter manuellemen
 
 Le mapping des DPs (nom, type, range, step) construit dans ce guide sert précisément à configurer correctement ces entités dans l'intégration choisie, une fois le `device_id`/`local_key` en main.
 
-> ⚠️ **Si vous utilisez localtuya** : préférez le fork **[xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya)** au dépôt original `rospogrigio/localtuya` listé plus haut. Le fork xZetsubou est mieux maintenu et compatible avec le protocole **3.5**, alors que le dépôt original ne l'est pas — un appareil récent utilisant le protocole Tuya 3.5 restera invisible ou impossible à configurer avec la version originale de localtuya (fork rospogrigio).
+Pour un comparatif détaillé de ces deux intégrations (et de l'intégration Tuya officielle) et savoir laquelle privilégier selon votre situation, voir la [section 2](#2-tuya-tuya-local-localtuya--cest-quoi-quand-les-utiliser).
 
 </details>
 
 ---
 
-## 2. Prérequis
+## 2. Tuya, Tuya-local, localtuya, ESPHome : C'est quoi, quand les utiliser ?
+
+<details>
+<summary>Voir plus</summary>
+
+Il existe quatre façons principales d'intégrer un appareil Tuya WiFi dans Home Assistant. Voici la différence entre chacune, et quand privilégier l'une plutôt que l'autre.
+
+### Tuya (intégration officielle, native à Home Assistant)
+
+Passe par le cloud Tuya : votre compte Tuya IoT/Smart Life sert à découvrir vos appareils et à relayer les commandes via les serveurs de Tuya, même si vous êtes sur le même réseau local que l'appareil.
+
+**Quand l'utiliser** : c'est le choix le plus simple à configurer (aucune installation HACS requise, intégrée nativement à Home Assistant), et elle couvre un large types d'appareils. Un bon choix si la latence du cloud (souvent 0,5 à 2 secondes) ne vous dérange pas et que vous ne souhaitez pas gérer de clés locales comme expliqué dans ce guide.
+
+**Inconvénients** : dépend d'une connexion Internet et des serveurs cloud de Tuya (une panne cloud ou internet signifie une perte de contrôle des appareils dans Home Assistant), latence plus élevée, et plusieurs appareils ou fonctionnalités ne sont pas exposés par l'API cloud de Tuya.
+
+### Tuya Local (HACS, [make-all/tuya-local](https://github.com/make-all/tuya-local))
+
+Contrôle 100 % local (réseau local, sans passer par le cloud pour les commandes), mais s'appuie sur une liste de configurations prédéfinies par appareil (`product_id` → mapping des DPs). Utiliser cette intégration n'empêche pas votre appareil d'envoyer son statut au cloud Tuya ; ce n'est donc pas à voir comme une mesure de sécurité, mais plutôt comme un gain de rapidité et de fiabilité grâce aux connexions locales, et cela peut débloquer certaines fonctionnalités ou appareils non pris en charge par l'API cloud de Tuya.
+
+**Quand l'utiliser** : si votre appareil figure dans la liste de support (configs par appareil) de tuya-local, et que vous souhaitez un contrôle local rapide et fiable sans avoir à mapper manuellement les DPs. C'est généralement le meilleur compromis simplicité/contrôle local pour les appareils déjà supportés.
+
+**Inconvénients** : si votre appareil n'a pas de profil de configuration existant dans l'intégration, il ne sera pas compatible, à moins que vous en soumettiez une (ce qui implique de faire le reverse-engineering de ses DPs — voir les étapes 7-9 de ce guide) ; les appareils sur pile (capteurs de porte/fenêtre, etc.) sont difficiles, voire impossibles, à prendre en charge en local à cause de leur gestion d'énergie.
+
+### LocalTuya (HACS)
+
+Aussi 100 % local, mais avec un mapping manuel des datapoints (DPs) : le mode manuel sans utilisation du cloud iot.tuya.com permet de vous-même identifier et configurer chaque DP manuellement (interrupteur, luminosité, mode, etc.) pour votre appareil, à partir du mapping que vous aurez construit avec tinytuya (voir les étapes 7-9 de ce guide). Cette intégration met à jour le statut des appareils par un système de push plutôt que par polling, donc les mises à jour restent rapides même lors d'une manipulation manuelle de l'appareil.
+
+**Quand l'utiliser** : si votre appareil n'est pas supporté par tuya-local, ou si vous souhaitez un contrôle fin/personnalisé sur les DPs (utile pour du matériel exotique, du DIY, ou des appareils avec des fonctions non standard).
+
+> ⚠️ **Quel fork utiliser** : il existe plusieurs forks de ce projet ; privilégiez le fork **[xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya)**, qui est le mieux maintenu et le seul à supporter le protocole Tuya **3.5** utilisé par les appareils récents. Le dépôt original ([rospogrigio/localtuya](https://github.com/rospogrigio/localtuya/)) n'est pas compatible avec ce protocole — un appareil récent en 3.5 y restera invisible ou impossible à configurer.
+
+**Inconvénients** : configuration manuelle plus lourde (récupération de la `local_key`, mapping des DPs un par un).
+
+### ESPHome (firmware alternatif — remplacement complet)
+
+Consiste à flasher un firmware maison (ESPHome) directement sur la puce WiFi de l'appareil (souvent un module ESP8266/ESP32 ou Beken BK7231) nécessitant un outil de flashing spécifique comme tuya-cloudcutter, ou un accès physique aux broches UART/pads de programmation ce qui implique parfois de la soudure) + un logiciel comme itchiptool. Une fois flashé, l'appareil ne parle plus du tout le protocole Tuya: il devient un appareil ESPHome natif, contrôlé 100 % localement par Home Assistant via l'API native ESPHome, sans dépendance à l'app Smart Life, au cloud Tuya, ni à aucune des trois intégrations ci-dessus, ni même au protocole local Tuya lui-même.
+
+**Ce que ça implique** :
+- Identifier la puce (module WiFi) utilisée par l'appareil et si elle est supportée par un outil de flashing local/OTA (ex: tuya-cloudcutter), ou si un accès physique aux pads UART est nécessaire (ouverture du boîtier, parfois soudure de fils temporaire sur des points de test).
+- Écrire une configuration ESPHome (YAML) qui reproduit les fonctions de l'appareil (relais, capteurs, etc.) à partir du hardware réel derrière le firmware d'origine.
+
+**Gains** :
+- Contrôle 100 % local, sans aucune dépendance à Tuya ni à son écosystème (compte, app, cloud, protocole local Tuya).
+- Aucune transmission de données vers le cloud Tuya.
+- Fiabilité à long terme: plus de risque qu'une mise à jour de firmware OTA côté Tuya vienne bloquer l'accès local ou changer le comportement de l'appareil.
+- Accès aux fonctionnalités natives d'ESPHome (intégration profonde avec Home Assistant, automatisations locales sur l'appareil lui-même, etc.), parfois plus riches que ce qu'expose le firmware Tuya d'origine.
+
+**Quand l'utiliser** : c'est l'option la plus drastique, elle remplace complètement le firmware d'origine et est irréversible dans la plupart des cas (à moins d'avoir au préalable fait une sauvegarde du firmware d'origine) mais aussi la plus fiable à long terme. Elle demande des compétences avec ESPHome, et parfois en soudure/électronique pour l'accès au hardware. À réserver aux personnes à l'aise avec ce genre de manipulation, ou aux appareils critiques où la fiabilité prime sur tout.
+
+> ⚠️ **Cette option n'est pas couverte dans ce guide.** Ce guide se concentre uniquement sur les trois intégrations qui communiquent avec le firmware Tuya d'origine (Tuya, tuya-local, LocalTuya).
+
+</details>
+
+---
+
+## 3. Combien d'intégrations locales peuvent se connecter en même temps à un appareil ?
+
+<details>
+<summary>Voir plus</summary>
+
+En général, il n'est **pas recommandé** de faire cohabiter plusieurs intégrations connectées localement au même appareil, même si cela fonctionne parfois techniquement.
+
+### Limite technique côté appareil
+
+Les appareils Tuya WiFi acceptent un nombre limité de connexions locales simultanées sur le port TCP 6668 (souvent 3 maximum selon le firmware). Chaque intégration locale (tuya-local, localtuya) qui se connecte consomme un de ces créneaux avec sa propre session persistante.
+
+### Conflits observés entre intégrations locales entre elles
+
+- **Découverte réseau (`IP Auto`)** : le mainteneur de tuya-local prévient explicitement de ne pas laisser l'IP sur `Auto` si localtuya est aussi installé — le mécanisme de découverte des appareils sur le réseau est déjà utilisé par localtuya, ce qui cause un conflit.
+- **Port déjà utilisé** : des erreurs `"Address in use"` (port 6668) apparaissent quand deux services tentent d'écouter/se connecter simultanément.
+- **Instabilité de l'appareil** : des rapports (protocole 3.4) font état d'appareils qui deviennent injoignables et se déconnectent du WiFi de façon répétée quand plusieurs intégrations locales sont actives en même temps sur le même appareil.
+
+### Cloud (Tuya officiel) + une intégration locale ensemble
+
+C'est possible sans conflit technique grave, puisque le cloud passe par les serveurs Tuya et non par une connexion locale directe. Mais ça crée un problème pratique : l'appareil apparaît en double dans Home Assistant (une entité cloud + une entité locale portant le même nom), ce qui complique vos automatisations — il faut alors désactiver manuellement la version cloud de l'appareil, ou la renommer, pour éviter la confusion.
+
+### Recommandation pratique
+
+- Une seule intégration locale par appareil (tuya-local *ou* LocalTuya, jamais les deux en même temps sur le même appareil).
+- Si vous gardez aussi l'intégration Tuya officielle active pour d'autres appareils, désactivez ou renommez explicitement la version cloud des appareils que vous contrôlez en local, pour éviter les doublons.
+
+Sources : [make-all/tuya-local, Discussion #522](https://github.com/make-all/tuya-local/discussions/522) · [make-all/tuya-local, Issue #6214](https://github.com/make-all/tuya-local/issues/6214) · [Home Assistant Community — Tuya and local tuya together](https://community.home-assistant.io/t/tuya-and-local-tuya-together/507582)
+
+</details>
+
+---
+
+## 4. Prérequis
 
 <details>
 <summary>Voir plus</summary>
@@ -61,59 +150,7 @@ Le mapping des DPs (nom, type, range, step) construit dans ce guide sert précis
 
 ---
 
-## 3. Installer l'add-on Advanced SSH & Web Terminal
-
-<details>
-<summary>Voir plus</summary>
-
-L'add-on officiel "Terminal & SSH" ne donne pas accès à Docker. Il faut l'add-on communautaire **Advanced SSH & Web Terminal**, qui donne un véritable shell sur l'hôte (avec `docker`).
-
-> ⚠️ Ce guide donne un accès complet à l'hôte Docker de l'installation HA (protection mode désactivé sur l'add-on). C'est nécessaire pour les commandes `docker exec`/`docker run` ci-dessous, mais cela sort du cadre "sécurisé par défaut" de HAOS — restez prudent avec les commandes exécutées, et désactivez/retirez l'add-on une fois le travail terminé, si désiré, pour revenir à un système plus verrouillé.
-
-[![Ouvrir votre Home Assistant et ajouter ce dépôt d'add-ons.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository)
-
-1. **Paramètres → Add-ons → Boutique d'add-ons**.
-2. Menu **⋮** (en haut à droite) → **Dépôts** → ajouter :
-   ```
-   https://github.com/hassio-addons/repository
-   ```
-3. Rechercher **"Advanced SSH & Web Terminal"** dans la liste (section "Home Assistant Community Add-ons") et cliquer sur **Installer**.
-4. Une fois installé, se rendre dans l'onglet **Configuration** de l'add-on :
-   - Définir un mot de passe (`password`) ou une clé SSH.
-   - Mettre **`Protection mode` sur `OFF`** — c'est ce qui donne l'accès à Docker/à l'hôte. Sans cela, les commandes plus bas ne fonctionneront pas.
-5. Démarrer l'add-on (onglet **Info** → **Démarrer**), puis activer **"Afficher dans le menu"** pour avoir un accès Terminal directement dans la barre latérale de Home Assistant.
-6. Ouvrir le terminal (icône dans la barre latérale, ou via l'onglet **Web UI** de l'add-on).
-
-Un shell avec accès complet à Docker est maintenant disponible, directement depuis la sidebar de Home Assistant
-
-</details>
-
----
-
-## 4. Vérifier la présence / installer tinytuya dans le conteneur Home Assistant
-
-<details>
-<summary>Voir plus</summary>
-
-Dans le terminal de l'add-on :
-
-```bash
-docker exec -it homeassistant pip show tinytuya
-```
-
-S'il est absent :
-
-```bash
-docker exec -it homeassistant pip install tinytuya
-```
-
-> ⚠️ Une installation manuelle dans le conteneur ne survit pas à une recréation du conteneur (mise à jour de l'image HA). Pour une utilisation ponctuelle de reverse engineering, ce n'est pas un problème — il suffit de le réinstaller au besoin.
-
-</details>
-
----
-
-## 5. Récupérer le device_id et local_key avec tuya-local-key
+## 5. Récupérer device_id et local_key avec tuya-local-key
 
 <details>
 <summary>Voir plus</summary>
@@ -162,9 +199,65 @@ Bien que le device_id soit récupérable directement via l'app Smartlife, la loc
 
 </details>
 
+> ✅ **Vous avez maintenant tout ce qu'il faut pour tuya-local** ([make-all/tuya-local](https://github.com/make-all/tuya-local)) : le `device_id` et la `local_key` suffisent si votre appareil (son `product_id`) est déjà couvert par une configuration existante dans cette intégration.
+>
+> Si tuya-local ne reconnaît pas votre appareil (`product_id` non supporté), poursuivez avec les étapes suivantes de ce guide pour récupérer et mapper manuellement les DPs de votre appareil.
+
 ---
 
-## 6. Lire les DPs de l'appareil
+## 6. Installer l'add-on Advanced SSH & Web Terminal
+
+<details>
+<summary>Voir plus</summary>
+
+L'add-on officiel "Terminal & SSH" ne donne pas accès à Docker. Il faut l'add-on communautaire **Advanced SSH & Web Terminal**, qui donne un véritable shell sur l'hôte (avec `docker`).
+
+> ⚠️ Ce guide donne un accès complet à l'hôte Docker de l'installation HA (protection mode désactivé sur l'add-on). C'est nécessaire pour les commandes `docker exec`/`docker run` ci-dessous, mais cela sort du cadre "sécurisé par défaut" de HAOS — restez prudent avec les commandes exécutées, et désactivez/retirez l'add-on une fois le travail terminé, si désiré, pour revenir à un système plus verrouillé.
+
+[![Ouvrir votre Home Assistant et ajouter ce dépôt d'add-ons.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository)
+
+1. **Paramètres → Add-ons → Boutique d'add-ons**.
+2. Menu **⋮** (en haut à droite) → **Dépôts** → ajouter :
+   ```
+   https://github.com/hassio-addons/repository
+   ```
+3. Rechercher **"Advanced SSH & Web Terminal"** dans la liste (section "Home Assistant Community Add-ons") et cliquer sur **Installer**.
+4. Une fois installé, se rendre dans l'onglet **Configuration** de l'add-on :
+   - Définir un mot de passe (`password`) ou une clé SSH.
+   - Mettre **`Protection mode` sur `OFF`** — c'est ce qui donne l'accès à Docker/à l'hôte. Sans cela, les commandes plus bas ne fonctionneront pas.
+5. Démarrer l'add-on (onglet **Info** → **Démarrer**), puis activer **"Afficher dans le menu"** pour avoir un accès Terminal directement dans la barre latérale de Home Assistant.
+6. Ouvrir le terminal (icône dans la barre latérale, ou via l'onglet **Web UI** de l'add-on).
+
+Un shell avec accès complet à Docker est maintenant disponible, directement depuis la sidebar de Home Assistant
+
+</details>
+
+---
+
+## 7. Vérifier la présence / installer tinytuya dans le conteneur Home Assistant
+
+<details>
+<summary>Voir plus</summary>
+
+Dans le terminal de l'add-on :
+
+```bash
+docker exec -it homeassistant pip show tinytuya
+```
+
+S'il est absent :
+
+```bash
+docker exec -it homeassistant pip install tinytuya
+```
+
+> ⚠️ Une installation manuelle dans le conteneur ne survit pas à une recréation du conteneur (mise à jour de l'image HA). Pour une utilisation ponctuelle de reverse engineering, ce n'est pas un problème — il suffit de le réinstaller au besoin.
+
+</details>
+
+---
+
+## 8. Lire les DPs de l'appareil
 
 <details>
 <summary>Voir plus</summary>
@@ -217,7 +310,7 @@ Utiliser un éditeur de texte, par exemple Notepad++ copier/coller le script plu
 
 Le résultat obtenu ressemble à `{'dps': {'1': True, '103': 1500, '106': True, '190': 3450, ...}}` — les identifiants de DP et leurs valeurs actuelles, mais sans nom ni description. Cette liste de DP correspond à tous les DP qui sont exposés localement sur votre réseau par votre appareil tuya. À noter que dans certains cas, certains DP peuvent être exposés par le firmware de l'appareil même s'ils n'ont en fait pas de fonction utile ou attribuée. Cela est attribuable au fait que plusieurs manufacturiers utilisent un "template" générique pour concevoir le firmware d'un type d'appareil sans toutefois tous les utiliser. Il est possible aussi que certains DP ne doivent pas être contrôlés par l'utilisateur (réglages d'usine).
 
-Prendre en note les DPs dans un tableau (voir exemple à l'étape 8).
+Prendre en note les DPs dans un tableau (voir exemple à l'étape 9).
 
 Les DP non-utilisés / non-attribués mais qui sont tout de même exposés, resteront statiques (aucun changement de valeur) durant les prochaines étapes et pourront être retirés du tableau.
 
@@ -227,7 +320,7 @@ Les DP non-utilisés / non-attribués mais qui sont tout de même exposés, rest
 
 ---
 
-## 7. Monitoring live des DPs + déduction via l'app Smart Life
+## 9. Monitoring live des DPs + déduction via l'app Smart Life
 
 <details>
 <summary>Voir plus</summary>
@@ -282,7 +375,7 @@ Le script actif, ouvrir l'app Smart Life et modifier **un seul réglage à la fo
 
 > ⚠️ Éviter d'envoyer des valeurs hors plage directement via `d.set_value()` pour "tester les bornes" — certains firmwares n'ont aucune validation côté device et appliqueront la valeur brute telle quelle, ce qui peut dérégler l'appareil. Rester sur les limites imposées par l'app tant que le mapping n'est pas confirmé.
 
-**Point de repère utile** : Tuya réserve généralement les DPs **1 à ~100** aux fonctions standard par catégorie de produit (voir [ressources](#9-ressources)) — si les DPs bas (1-20) suivent un pattern reconnaissable, cela confirme la catégorie de base de l'appareil. Les DPs **101+** sont presque toujours des extensions propriétaires propres à chaque fabricant, à déduire uniquement par cette méthode empirique.
+**Point de repère utile** : Tuya réserve généralement les DPs **1 à ~100** aux fonctions standard par catégorie de produit (voir [ressources](#10-ressources)) — si les DPs bas (1-20) suivent un pattern reconnaissable, cela confirme la catégorie de base de l'appareil. Les DPs **101+** sont presque toujours des extensions propriétaires propres à chaque fabricant, à déduire uniquement par cette méthode empirique.
 
 **Exemple 1**
 
@@ -290,7 +383,8 @@ Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "no lo
 
 <img width="349" height="714" alt="image" src="https://github.com/user-attachments/assets/f1e1df88-5f70-4d39-9c7d-599c2ab8345c" /><img width="350" height="718" alt="image" src="https://github.com/user-attachments/assets/b074300e-2834-48fb-97ad-42874f80e336" />
 
-<img width="690" height="498" alt="image" src="https://github.com/user-attachments/assets/306176a7-be1e-4cdf-a107-b1c634ad7fa9" />
+<img width="1476" height="1065" alt="image" src="https://github.com/user-attachments/assets/aac194c6-0530-444a-835a-621bb71f5252" />
+
 
 
 **Exemple 2**
@@ -305,7 +399,7 @@ Dans cet exemple nous voulons trouver le DP qui correspond à la fonction "quick
 
 ---
 
-## 8. Tableau de suivi
+## 10. Tableau de suivi
 
 <details>
 <summary>Voir plus</summary>
@@ -320,9 +414,11 @@ Documenter chaque DP au fur et à mesure dans un tableau qui servira ensuite à 
 
 </details>
 
+> ✅ **Vous avez maintenant tout ce qu'il faut** pour soit configurer manuellement votre appareil dans **localTuya** (idéalement via le fork [xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya), compatible protocole 3.5), soit contribuer votre mapping de DPs à **tuya-local** ([make-all/tuya-local](https://github.com/make-all/tuya-local)) afin d'y ajouter officiellement le support de votre appareil pour l'ensemble de la communauté.
+
 ---
 
-## 9. Ressources
+## 11. Ressources
 
 <details>
 <summary>Voir plus</summary>
@@ -353,14 +449,16 @@ Guide to retrieving a Tuya WiFi device's `device_id` and `local_key`, querying i
 ## Table of Contents
 
 1. [What this guide is for](#1-what-this-guide-is-for)
-2. [Prerequisites](#2-prerequisites)
-3. [Install the Advanced SSH & Web Terminal add-on](#3-install-the-advanced-ssh--web-terminal-add-on)
-4. [Check / install tinytuya in the Home Assistant container](#4-check--install-tinytuya-in-the-home-assistant-container)
+2. [Tuya, Tuya-local, localtuya, ESPHome: What are they, when to use which?](#2-tuya-tuya-local-localtuya-esphome-what-are-they-when-to-use-which)
+3. [How many local integrations can connect to a device at the same time?](#3-how-many-local-integrations-can-connect-to-a-device-at-the-same-time)
+4. [Prerequisites](#4-prerequisites)
 5. [Get the device_id and local_key with tuya-local-key](#5-get-the-device_id-and-local_key-with-tuya-local-key)
-6. [Read the device's DPs](#6-read-the-devices-dps)
-7. [Live DP monitoring + deduction via the Smart Life app](#7-live-dp-monitoring--deduction-via-the-smart-life-app)
-8. [Tracking table](#8-tracking-table)
-9. [Resources](#9-resources)
+6. [Install the Advanced SSH & Web Terminal add-on](#6-install-the-advanced-ssh--web-terminal-add-on)
+7. [Check / install tinytuya in the Home Assistant container](#7-check--install-tinytuya-in-the-home-assistant-container)
+8. [Read the device's DPs](#8-read-the-devices-dps)
+9. [Live DP monitoring + deduction via the Smart Life app](#9-live-dp-monitoring--deduction-via-the-smart-life-app)
+10. [Tracking table](#10-tracking-table)
+11. [Resources](#11-resources)
 
 ---
 
@@ -376,13 +474,50 @@ The `device_id` and `local_key` retrieved here are used to manually add a Tuya W
 
 The DP mapping (name, type, range, step) built in this guide is exactly what's needed to correctly configure these entities in whichever integration you choose, once you have the `device_id`/`local_key` in hand.
 
-> ⚠️ **If you use localtuya**: prefer the fork **[xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya)** over the original `rospogrigio/localtuya` repo listed above. The xZetsubou fork is better maintained and compatible with protocol **3.5**, whereas the original repo is not — a recent device using the Tuya 3.5 protocol will remain invisible or impossible to configure with the original version of localtuya (rospogrigio fork).
+For a detailed comparison of these two integrations (and the official Tuya integration), and which one to pick for your situation, see [section 2](#2-tuya-tuya-local-localtuya-esphome-what-are-they-when-to-use-which).
 
 </details>
 
 ---
 
-## 2. Prerequisites
+## 2. Tuya, Tuya-local, localtuya, ESPHome: What are they, when to use which?
+
+<details>
+<summary>See more</summary>
+
+There are four main ways to integrate a Tuya WiFi device into Home Assistant. Here is the difference between each, and when to favor one over the others.
+
+### Tuya (official integration, built into Home Assistant)
+
+Goes through the Tuya cloud: your Tuya IoT/Smart Life account is used to discover your devices and relay commands through Tuya's servers, even when you are on the same local network as the device.
+
+**When to use it**: this is the default choice, the simplest to set up (no HACS install required, built natively into Home Assistant), and it covers a broad range of device types. A good choice if cloud latency (often 0.5–2 seconds) doesn't bother you and you don't want to manage local keys manually.
+
+**Downsides**: depends on an internet connection and Tuya's servers (a cloud outage means loss of control), higher latency, and some devices or features are not exposed by Tuya's cloud API.
+
+### Tuya Local (HACS, [make-all/tuya-local](https://github.com/make-all/tuya-local))
+
+100% local control (local network, no cloud involved for commands), but relies on a list of pre-built per-device configurations (`product_id` → DP mapping). Using this integration does not stop your device from sending its status to the Tuya cloud, so it should not be seen as a security measure — rather, it improves speed and reliability through local connections, and may unlock some features or devices not supported by Tuya's cloud API.
+
+**When to use it**: if your device is on tuya-local's support list (per-device configs), and you want fast, reliable local control without having to map DPs by hand. This is generally the best simplicity/local-control trade-off for already-supported devices.
+
+**Downsides**: if your device has no existing config, you'll need to submit one (which means reverse-engineering its DPs — see steps 7-9 of this guide); battery-powered devices (door/window sensors, etc.) are difficult or impossible to support locally because of their power management.
+
+### LocalTuya (HACS)
+
+Also 100% local, but with manual datapoint (DP) mapping: you identify and configure each DP yourself (switch, brightness, mode, etc.) for your device, from the mapping you build with tinytuya (see steps 7-9 of this guide). This integration updates device status through a push system rather than polling, so updates stay fast even during manual operation of the device.
+
+**When to use it**: if your device isn't supported by tuya-local, or you want fine-grained/custom control over the DPs (useful for exotic hardware, DIY, or devices with non-standard functions).
+
+> ⚠️ **Which fork to use**: several forks of this project exist; favor the **[xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya)** fork, which is the best maintained and the only one supporting Tuya protocol **3.5** used by recent devices. The original repo ([rospogrigio/localtuya](https://github.com/rospogrigio/localtuya/)) is not compatible with this protocol — a recent 3.5 device will remain invisible or impossible to configure with it.
+
+**Downsides**: heavier manual setup (retrieving the `local_key`, mapping DPs one by one).
+
+</details>
+
+---
+
+## 3. Prerequisites
 
 <details>
 <summary>See more</summary>
@@ -397,59 +532,7 @@ The DP mapping (name, type, range, step) built in this guide is exactly what's n
 
 ---
 
-## 3. Install the Advanced SSH & Web Terminal add-on
-
-<details>
-<summary>See more</summary>
-
-The official "Terminal & SSH" add-on does not give access to Docker. You need the community add-on **Advanced SSH & Web Terminal**, which gives a real shell on the host (with `docker`).
-
-> ⚠️ This guide grants full access to the Docker host of your HA installation (protection mode disabled on the add-on). This is necessary for the `docker exec`/`docker run` commands below, but it steps outside HAOS's "secure by default" scope — stay careful with the commands you run, and disable/remove the add-on once the work is done, if you want to return to a more locked-down system.
-
-[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository)
-
-1. **Settings → Add-ons → Add-on Store**.
-2. **⋮** menu (top right) → **Repositories** → add:
-   ```
-   https://github.com/hassio-addons/repository
-   ```
-3. Search for **"Advanced SSH & Web Terminal"** in the list (under "Home Assistant Community Add-ons") and click **Install**.
-4. Once installed, go to the add-on's **Configuration** tab:
-   - Set a password (`password`) or an SSH key.
-   - Set **`Protection mode` to `OFF`** — this is what grants access to Docker/the host. Without this, the commands below will not work.
-5. Start the add-on (**Info** tab → **Start**), then enable **"Show in sidebar"** to get direct Terminal access from Home Assistant's sidebar.
-6. Open the terminal (icon in the sidebar, or via the add-on's **Web UI** tab).
-
-A shell with full Docker access is now available, directly from Home Assistant's sidebar.
-
-</details>
-
----
-
-## 4. Check / install tinytuya in the Home Assistant container
-
-<details>
-<summary>See more</summary>
-
-In the add-on's terminal:
-
-```bash
-docker exec -it homeassistant pip show tinytuya
-```
-
-If it's missing:
-
-```bash
-docker exec -it homeassistant pip install tinytuya
-```
-
-> ⚠️ A manual install inside the container does not survive a container recreation (an HA image update). For a one-off reverse-engineering session, that's not a problem — just reinstall it if needed.
-
-</details>
-
----
-
-## 5. Get the device_id and local_key with tuya-local-key
+## 4. Get the device_id and local_key with tuya-local-key
 
 <details>
 <summary>See more</summary>
@@ -498,9 +581,65 @@ While the device_id can be retrieved directly from the Smart Life app, the local
 
 </details>
 
+> ✅ **You now have everything needed for tuya-local** ([make-all/tuya-local](https://github.com/make-all/tuya-local)): the `device_id` and `local_key` are enough if your device (its `product_id`) is already covered by an existing config in that integration.
+>
+> If tuya-local doesn't recognize your device (`product_id` not supported), continue with the following steps of this guide to retrieve and manually map your device's DPs.
+
 ---
 
-## 6. Read the device's DPs
+## 5. Install the Advanced SSH & Web Terminal add-on
+
+<details>
+<summary>See more</summary>
+
+The official "Terminal & SSH" add-on does not give access to Docker. You need the community add-on **Advanced SSH & Web Terminal**, which gives a real shell on the host (with `docker`).
+
+> ⚠️ This guide grants full access to the Docker host of your HA installation (protection mode disabled on the add-on). This is necessary for the `docker exec`/`docker run` commands below, but it steps outside HAOS's "secure by default" scope — stay careful with the commands you run, and disable/remove the add-on once the work is done, if you want to return to a more locked-down system.
+
+[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository)
+
+1. **Settings → Add-ons → Add-on Store**.
+2. **⋮** menu (top right) → **Repositories** → add:
+   ```
+   https://github.com/hassio-addons/repository
+   ```
+3. Search for **"Advanced SSH & Web Terminal"** in the list (under "Home Assistant Community Add-ons") and click **Install**.
+4. Once installed, go to the add-on's **Configuration** tab:
+   - Set a password (`password`) or an SSH key.
+   - Set **`Protection mode` to `OFF`** — this is what grants access to Docker/the host. Without this, the commands below will not work.
+5. Start the add-on (**Info** tab → **Start**), then enable **"Show in sidebar"** to get direct Terminal access from Home Assistant's sidebar.
+6. Open the terminal (icon in the sidebar, or via the add-on's **Web UI** tab).
+
+A shell with full Docker access is now available, directly from Home Assistant's sidebar.
+
+</details>
+
+---
+
+## 6. Check / install tinytuya in the Home Assistant container
+
+<details>
+<summary>See more</summary>
+
+In the add-on's terminal:
+
+```bash
+docker exec -it homeassistant pip show tinytuya
+```
+
+If it's missing:
+
+```bash
+docker exec -it homeassistant pip install tinytuya
+```
+
+> ⚠️ A manual install inside the container does not survive a container recreation (an HA image update). For a one-off reverse-engineering session, that's not a problem — just reinstall it if needed.
+
+</details>
+
+---
+
+## 7. Read the device's DPs
 
 <details>
 <summary>See more</summary>
@@ -552,7 +691,7 @@ Use a text editor, for example Notepad++: copy/paste the script above into a new
 
 The result looks like `{'dps': {'1': True, '103': 1500, '106': True, '190': 3450, ...}}` — the DP identifiers and their current values, but with no name or description. This list of DPs corresponds to every DP exposed locally on your network by your Tuya device. Note that in some cases, certain DPs may be exposed by the device's firmware even though they don't actually have a useful/assigned function. This is because many manufacturers use a generic "template" to design the firmware for a device type without necessarily using every DP in it. It's also possible that some DPs are not meant to be controlled by the user (factory settings).
 
-Note down the DPs in a table (see the example in step 8).
+Note down the DPs in a table (see the example in step 9).
 
 Unused/unassigned DPs that are nonetheless exposed will stay static (no value change) throughout the next steps and can be removed from the table.
 
@@ -562,7 +701,7 @@ Unused/unassigned DPs that are nonetheless exposed will stay static (no value ch
 
 ---
 
-## 7. Live DP monitoring + deduction via the Smart Life app
+## 8. Live DP monitoring + deduction via the Smart Life app
 
 <details>
 <summary>See more</summary>
@@ -577,7 +716,7 @@ import tinytuya
 import time
 
 d = tinytuya.Device('DEVICE_ID', 'DEVICE_IP', "LOCAL_KEY")
-d.set_version(VERSION)  # the same version noted in step 6
+d.set_version(VERSION)  # the same version noted in step 7
 d.set_socketPersistent(True)
 
 last = d.status().get('dps', {})
@@ -617,7 +756,7 @@ With the script running, open the Smart Life app and change **one setting at a t
 
 > ⚠️ Avoid sending out-of-range values directly via `d.set_value()` to "test the limits" — some firmwares have no validation on the device side and will apply the raw value as-is, which can put the device into a bad state. Stick to the limits imposed by the app until the mapping is confirmed.
 
-**Useful rule of thumb**: Tuya generally reserves DPs **1 to ~100** for standard functions by product category (see [resources](#9-resources)) — if the low DPs (1-20) follow a recognizable pattern, that confirms the device's base category. DPs **101+** are almost always proprietary extensions specific to each manufacturer, to be deduced only through this empirical method.
+**Useful rule of thumb**: Tuya generally reserves DPs **1 to ~100** for standard functions by product category (see [resources](#10-resources)) — if the low DPs (1-20) follow a recognizable pattern, that confirms the device's base category. DPs **101+** are almost always proprietary extensions specific to each manufacturer, to be deduced only through this empirical method.
 
 **Example 1**
 
@@ -641,7 +780,7 @@ In this example, we want to find the DP corresponding to the "quick clean speed"
 
 ---
 
-## 8. Tracking table
+## 9. Tracking table
 
 <details>
 <summary>See more</summary>
@@ -656,9 +795,11 @@ Document each DP as you go, in a table that will later be used to manually confi
 
 </details>
 
+> ✅ **You now have everything needed** to either manually configure your device in **localTuya** (ideally via the [xZetsubou/hass-localtuya](https://github.com/xZetsubou/hass-localtuya) fork, 3.5-protocol compatible), or contribute your DP mapping to **tuya-local** ([make-all/tuya-local](https://github.com/make-all/tuya-local)) to officially add support for your device for the whole community.
+
 ---
 
-## 9. Resources
+## 10. Resources
 
 <details>
 <summary>See more</summary>
